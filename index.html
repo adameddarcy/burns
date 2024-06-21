@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprint Burndown and Burn-up Charts</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+</head>
+<body>
+<h1>Sprint Burndown and Burn-up Charts</h1>
+<input type="file" id="csvFileInput" accept=".csv">
+<br><br>
+<button id="downloadBurndown">Download Burndown Chart</button>
+<button id="downloadBurnup">Download Burn-up Chart</button>
+<br><br>
+<canvas id="burndownChart" width="800" height="400"></canvas>
+<canvas id="burnupChart" width="800" height="400"></canvas>
+
+<script>
+    document.getElementById('csvFileInput').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                processCSV(text);
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    function processCSV(text) {
+        const data = parseCSV(text);
+        const closedStatus = 'Closed';
+
+        // Convert string dates to Date objects
+        data.forEach(item => {
+            item.Created = new Date(item.Created);
+            item.Updated = new Date(item.Updated);
+        });
+
+        // Calculate the average resolution time in days
+        data.forEach(item => {
+            item.ResolutionTime = (item.Updated - item.Created) / (1000 * 60 * 60 * 24); // in days
+        });
+        const averageResolutionTime = data.reduce((sum, item) => sum + item.ResolutionTime, 0) / data.length;
+
+        // Calculate the number of unresolved and resolved issues for each date
+        const startDate = new Date(Math.min(...data.map(item => item.Created)));
+        const currentDate = new Date();
+        const dates = [];
+        for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
+            dates.push(new Date(d));
+        }
+
+        const unresolvedCounts = dates.map(date => data.filter(item => item.Created <= date && item.Updated > date).length);
+        const resolvedCounts = dates.map(date => data.filter(item => item.Updated <= date && item.Status === closedStatus).length);
+
+        // Predict the completion date based on the average resolution time
+        const totalIssues = data.length;
+        const remainingIssues = totalIssues - resolvedCounts[resolvedCounts.length - 1];
+        const predictedCompletionTimeDays = remainingIssues * averageResolutionTime;
+        const predictedCompletionDate = new Date(currentDate.getTime() + predictedCompletionTimeDays * (1000 * 60 * 60 * 24));
+
+        // Extend the dates to include the predicted completion date
+        const extendedDates = [...dates, predictedCompletionDate];
+        const extendedResolvedCounts = [...resolvedCounts, totalIssues];
+
+        // Create the burndown chart
+        createBurndownChart(dates, unresolvedCounts);
+        // Create the burn-up chart
+        createBurnupChart(extendedDates, extendedResolvedCounts, predictedCompletionDate);
+    }
+
+    function parseCSV(text) {
+        const lines = text.split('\n');
+        const headers = lines[0].split(',');
+        return lines.slice(1).filter(line => line.trim()).map(line => {
+            const values = line.split(',');
+            const entry = {};
+            headers.forEach((header, index) => {
+                entry[header.trim()] = values[index].trim();
+            });
+            return entry;
+        });
+    }
+
+    function createBurndownChart(dates, unresolvedCounts) {
+        const ctx = document.getElementById('burndownChart').getContext('2d');
+        const formattedDates = dates.map(date => date.toISOString().split('T')[0]);
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: formattedDates,
+                datasets: [{
+                    label: 'Unresolved Issues',
+                    data: unresolvedCounts,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day',
+                            tooltipFormat: 'MMM dd',
+                            displayFormats: {
+                                day: 'MMM dd'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Number of Unresolved Issues'
+                        },
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Burndown Chart'
+                    }
+                }
+            }
+        });
+    }
+
+    function createBurnupChart(dates, resolvedCounts, predictedCompletionDate) {
+        const ctx = document.getElementById('burnupChart').getContext('2d');
+        const formattedDates = dates.map(date => date.toISOString().split('T')[0]);
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: formattedDates,
+                datasets: [{
+                    label: 'Resolved Issues',
+                    data: resolvedCounts,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day',
+                            tooltipFormat: 'MMM dd',
+                            displayFormats: {
+                                day: 'MMM dd'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Number of Resolved Issues'
+                        },
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Burn-up Chart'
+                    },
+                    annotation: {
+                        annotations: [{
+                            type: 'line',
+                            mode: 'vertical',
+                            scaleID: 'x',
+                            value: predictedCompletionDate.toISOString().split('T')[0],
+                            borderColor: 'red',
+                            borderWidth: 2,
+                            label: {
+                                content: 'Predicted Completion Date',
+                                enabled: true,
+                                position: 'top'
+                            }
+                        }]
+                    }
+                }
+            }
+        });
+    }
+
+    // Function to download the chart as an image
+    function downloadChart(chartId, filename) {
+        const link = document.createElement('a');
+        link.href = document.getElementById(chartId).toDataURL('image/png');
+        link.download = filename;
+        link.click();
+    }
+
+    document.getElementById('downloadBurndown').addEventListener('click', function() {
+        downloadChart('burndownChart', 'burndown_chart.png');
+    });
+
+    document.getElementById('downloadBurnup').addEventListener('click', function() {
+        downloadChart('burnupChart', 'burnup_chart.png');
+    });
+</script>
+</body>
+</html>
