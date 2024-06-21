@@ -167,6 +167,7 @@
     function createBurndownChart(dates, unresolvedCounts) {
         const ctx = document.getElementById('burndownChart').getContext('2d');
         const formattedDates = dates.map(date => date.toISOString().split('T')[0]);
+        const today = new Date().toISOString().split('T')[0];
         new Chart(ctx, {
             type: 'line',
             data: {
@@ -207,7 +208,7 @@
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Burndown Chart'
+                        text: `Burndown Chart - ${today}`
                     }
                 }
             }
@@ -217,6 +218,7 @@
     function createBurnupChart(dates, resolvedCounts, predictedCompletionDate) {
         const ctx = document.getElementById('burnupChart').getContext('2d');
         const formattedDates = dates.map(date => date.toISOString().split('T')[0]);
+        const today = new Date().toISOString().split('T')[0];
         new Chart(ctx, {
             type: 'line',
             data: {
@@ -257,7 +259,7 @@
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Burn-up Chart'
+                        text: `Burn-up Chart - ${today}`
                     },
                     annotation: {
                         annotations: [{
@@ -280,7 +282,11 @@
     }
 
     // Function to download the chart as an image
-    function downloadChart(chartId, filename) {
+    function downloadChart(chartId, chartName) {
+
+        const today = new Date().toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        const filename = `${chartName} - ${today}.png`;
+
         const link = document.createElement('a');
         link.href = document.getElementById(chartId).toDataURL('image/png');
         link.download = filename;
