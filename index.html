@@ -80,7 +80,10 @@
             const values = line.split(',');
             const entry = {};
             headers.forEach((header, index) => {
-                entry[header.trim()] = values[index].trim();
+                const key = header.trim();
+                if (['Created', 'Updated', 'Status'].includes(key)) {
+                    entry[key] = values[index].trim();
+                }
             });
             return entry;
         });
