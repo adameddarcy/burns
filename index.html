@@ -69,6 +69,29 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Highlight style for override action */
+        .highlight-override {
+            background-color: #ffeb3b; /* Bright yellow background */
+            border: 2px solid #f44336; /* Red border */
+            padding: 5px; /* Padding around the input field */
+            border-radius: 4px; /* Rounded corners */
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); /* Red glow */
+            animation: pulse 1s infinite; /* Pulse animation */
+        }
+
+        /* Pulse animation */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 2px rgba(255, 0, 0, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+            }
+            100% {
+                box-shadow: 0 0 2px rgba(255, 0, 0, 0.25);
+            }
+        }
     </style>
 </head>
 <body>
@@ -77,18 +100,24 @@
     <h2>Instructions</h2>
     <ol>
         <li>In Jira, create a filter against your Epic.</li>
-        <li>Reduce Columns to be "Created", "Status", and "Updated".</li>
+        <li>Reduce Columns to be "Created", "Status", "Updated" and "Assignee".</li>
         <li>Export CSV (Current Fields).</li>
         <li>Upload your CSV to generate your charts.</li>
+        <li>The number of developers active on the project will be calculated automatically from the Assignee column. But you can override this with a manual average number of developers</li>
         <li>Refresh to create a new chart and repeat.</li>
     </ol>
+    <article>You can provide how many developers on average have been working on this project. If no value is assigned we will calculate an average from the Jira data.</article>
 </div>
 <br><br>
-<label for="numDevelopers">Average Number of Developers:</label>
-<input type="number" id="numDevelopers" min="1" value="1">
+<div class="highlight-override">
+    <label for="numDevelopers" id="developerLabel">Override Number of Developers:</label>
+    <input type="number" id="numDevelopers" min="0" value="0">
+</div>
 <br><br>
 <input type="file" id="csvFileInput" accept=".csv">
 <div class="loader" id="loader"></div>
+<br><br>
+<span>Set number of Developers = </span><span id="activeDevsCount"></span><span/>
 <br><br>
 <button id="downloadBurndown">Download Burndown Chart</button>
 <button id="downloadBurnup">Download Burn-up Chart</button>
@@ -120,8 +149,15 @@
         });
 
         // Get the average number of developers
-        const numDevelopers = parseInt(document.getElementById('numDevelopers').value) || 1;
+        let numDevelopers = parseInt(document.getElementById('numDevelopers').value);
+        // If average number of developers is not provided, calculate it from Assignee column
+        if (isNaN(numDevelopers) || numDevelopers < 1) {
+            const uniqueAssignees = new Set(data.map(item => item.Assignee));
+            numDevelopers = uniqueAssignees.size - 1;
+        }
 
+        const node = document.createTextNode(`${numDevelopers}`);
+        activeDevsCount.appendChild(node);
         // Calculate the average resolution time in days
         data.forEach(item => {
             item.ResolutionTime = (item.Updated - item.Created) / (1000 * 60 * 60 * 24); // in days
@@ -163,7 +199,7 @@
             const entry = {};
             headers.forEach((header, index) => {
                 const key = header.trim();
-                if (['Created', 'Updated', 'Status'].includes(key)) {
+                if (['Created', 'Updated', 'Status', 'Assignee'].includes(key)) {
                     entry[key] = values[index].trim();
                 }
             });
