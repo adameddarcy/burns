@@ -41,6 +41,7 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 25%;
         }
         button {
             margin: 5px;
@@ -92,6 +93,46 @@
                 box-shadow: 0 0 2px rgba(255, 0, 0, 0.25);
             }
         }
+        .tables-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .charts-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            margin: 20px 0;
+            width: 100%; /* Ensure the charts container takes the full width of the screen */
+            box-sizing: border-box;
+            height: 20%;
+        }
+
+        .chart-canvas {
+            display: block;
+            margin: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 45%; /* Adjust width to fit within the container */
+            flex: 1;
+        }
     </style>
 </head>
 <body>
@@ -100,7 +141,7 @@
     <h2>Instructions</h2>
     <ol>
         <li>In Jira, create a filter against your Epic.</li>
-        <li>Reduce Columns to be "Created", "Status", "Updated" and "Assignee".</li>
+        <li>Reduce Columns to be "Created", "Status", "Updated", "Assignee" and "Key".</li>
         <li>Export CSV (Current Fields).</li>
         <li>Upload your CSV to generate your charts.</li>
         <li>The number of developers active on the project will be calculated automatically from the Assignee column. But you can override this with a manual average number of developers.</li>
@@ -114,6 +155,8 @@
     <input type="number" id="numDevelopers" min="0" value="0">
 </div>
 <br><br>
+<div id="errorContainer" style="display:none; color: red; font-weight: bold; margin: 20px 0;"></div>
+
 <input type="file" id="csvFileInput" accept=".csv">
 <div class="loader" id="loader"></div>
 <br><br>
@@ -122,8 +165,12 @@
 <button id="downloadBurndown">Download Burndown Chart</button>
 <button id="downloadBurnup">Download Burn-up Chart</button>
 <br><br>
-<canvas id="burndownChart" width="800" height="400"></canvas>
-<canvas id="burnupChart" width="800" height="400"></canvas>
+<div class="charts-container">
+    <canvas class="chart-canvas" id="burndownChart" width="200" height="50"></canvas>
+    <canvas class="chart-canvas" id="burnupChart" width="200" height="50"></canvas>
+</div>
+
+<div class="tables-container" id="tablesContainer"></div>
 
 <script>
     document.getElementById('csvFileInput').addEventListener('change', function(event) {
@@ -138,57 +185,204 @@
         }
     });
 
+    function displayError(message) {
+        const errorContainer = document.getElementById('errorContainer');
+        errorContainer.innerText = message;
+        errorContainer.style.display = 'block';
+    }
+
+    function clearError() {
+        const errorContainer = document.getElementById('errorContainer');
+        errorContainer.innerText = '';
+        errorContainer.style.display = 'none';
+    }
+
+
     function processCSV(text) {
+        clearError();
         const data = parseCSV(text);
+
+        const requiredColumns = ['Issue key', 'Status', 'Created', 'Updated', 'Assignee'];
+        const headers = Object.keys(data[0]);
+
+        console.log('Validating columns ... ');
+
+        const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+        if (missingColumns.length > 0) {
+            window.alert(`Missing required columns: ${missingColumns.join(', ')}`)
+            console.error(`Missing required columns: ${missingColumns.join(', ')}. Please check your CSV file and try again.`);
+            displayError(`Missing required columns: ${missingColumns.join(', ')}. Please check your CSV file and try again.`);
+            return;
+        }
+
         const closedStatus = 'Closed';
 
-        // Convert string dates to Date objects
-        data.forEach(item => {
-            item.Created = new Date(item.Created);
-            item.Updated = new Date(item.Updated);
-        });
+        if (data[0].Created && data[0].Updated) {
+            data.forEach(item => {
+                item.Created = new Date(item.Created);
+                item.Updated = new Date(item.Updated);
+            });
+        }
 
-        // Get the average number of developers
         let numDevelopers = parseInt(document.getElementById('numDevelopers').value);
-        // If average number of developers is not provided, calculate it from Assignee column
         if (isNaN(numDevelopers) || numDevelopers < 1) {
-            const uniqueAssignees = new Set(data.map(item => item.Assignee));
-            numDevelopers = uniqueAssignees.size - 1;
+            if (data[0].Assignee) {
+                const uniqueAssignees = new Set(data.map(item => item.Assignee));
+                numDevelopers = uniqueAssignees.size - 1;
+            } else {
+                numDevelopers = 1;
+            }
         }
 
-        const node = document.createTextNode(`${numDevelopers}`);
-        activeDevsCount.appendChild(node);
-        // Calculate the average resolution time in days
-        data.forEach(item => {
-            item.ResolutionTime = (item.Updated - item.Created) / (1000 * 60 * 60 * 24); // in days
+        document.getElementById('activeDevsCount').textContent = `${numDevelopers}`;
+
+        if (data[0].Created && data[0].Updated) {
+            data.forEach(item => {
+                item.ResolutionTime = (item.Updated - item.Created) / (1000 * 60 * 60 * 24);
+            });
+            const averageResolutionTime = data.reduce((sum, item) => sum + item.ResolutionTime, 0) / data.length / numDevelopers;
+
+            const startDate = new Date(Math.min(...data.map(item => item.Created)));
+            const currentDate = new Date();
+            const dates = [];
+            for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
+                dates.push(new Date(d));
+            }
+
+            const unresolvedCounts = dates.map(date => data.filter(item => item.Created <= date && item.Updated > date).length);
+            const resolvedCounts = dates.map(date => data.filter(item => item.Updated <= date && item.Status === closedStatus).length);
+
+            const totalIssues = data.length;
+            const remainingIssues = totalIssues - resolvedCounts[resolvedCounts.length - 1];
+            const predictedCompletionTimeDays = remainingIssues * averageResolutionTime;
+            const predictedCompletionDate = new Date(currentDate.getTime() + predictedCompletionTimeDays * (1000 * 60 * 60 * 24));
+
+            const extendedDates = [...dates, predictedCompletionDate];
+            const extendedResolvedCounts = [...resolvedCounts, totalIssues];
+
+            createBurndownChart(dates, unresolvedCounts);
+            createBurnupChart(extendedDates, extendedResolvedCounts, predictedCompletionDate);
+        } else {
+            console.error('Required date columns ("Created" and "Updated") are missing.');
+        }
+
+        displayTables(data);
+    }
+
+    function displayTables(data) {
+        const tableContainer = document.getElementById('tablesContainer');
+        tableContainer.innerHTML = '';
+
+        const openIssues = data.filter(item => item.Status === 'Open');
+        const completedIssues = data.filter(item => item.Status === 'Closed');
+        const inProgressIssues = data.filter(item => item.Status === 'In Progress' || item.Status === 'In Review');
+
+        function createTable(issues, title) {
+            const container = document.createElement('div');
+            container.className = 'table-container';
+
+            const header = document.createElement('h3');
+            header.innerText = title;
+            container.appendChild(header);
+
+            const table = document.createElement('table');
+            const headerRow = table.insertRow();
+            ['Key', 'Status', 'Completion Date / Days in Status'].forEach(headerText => {
+                const headerCell = document.createElement('th');
+                headerCell.innerText = headerText;
+                headerRow.appendChild(headerCell);
+            });
+
+            issues.forEach(item => {
+                const row = table.insertRow();
+                const statusColor = getStatusColor(item.Status);
+
+                const keyCell = row.insertCell();
+                keyCell.innerText = item['Issue key']
+                keyCell.style.backgroundColor = statusColor;
+
+                const statusCell = row.insertCell();
+                statusCell.innerText = item.Status;
+                statusCell.style.backgroundColor = statusColor;
+
+                const completionCell = row.insertCell();
+                if (item.Status === 'In Progress' || item.Status === 'In Review') {
+                    const daysInStatus = Math.round((new Date() - item.Updated) / (1000 * 60 * 60 * 24));
+                    completionCell.innerText = `${daysInStatus} days`;
+                } else if (item.Status === 'Closed') {
+                    completionCell.innerText = item.Updated.toISOString().split('T')[0];
+                } else {
+                    completionCell.innerText = 'N/A';
+                }
+                completionCell.style.backgroundColor = statusColor;
+            });
+
+            container.appendChild(table);
+            return container;
+        }
+
+        const openTable = createTable(openIssues, 'Open Issues');
+        const inProgressTable = createTable(inProgressIssues, 'In Progress / In Review Issues');
+        const completedTable = createTable(completedIssues, 'Completed Issues');
+
+        tableContainer.appendChild(openTable);
+        tableContainer.appendChild(completedTable);
+        tableContainer.appendChild(inProgressTable);
+
+        // Add the pie chart as a column
+        const pieChartContainer = document.createElement('div');
+        pieChartContainer.className = 'table-container'; // Use the same class to ensure consistent styling
+        const pieChartCanvas = document.createElement('canvas');
+        pieChartCanvas.id = 'pieChart';
+        pieChartCanvas.width = 900;
+        pieChartCanvas.height = 900;
+        pieChartContainer.appendChild(pieChartCanvas);
+        tableContainer.appendChild(pieChartContainer);
+
+        // Create the pie chart
+        createPieChart(openIssues.length, completedIssues.length, inProgressIssues.length);
+    }
+
+    function getStatusColor(status) {
+        switch (status) {
+            case 'Closed':
+                return 'lightgreen';
+            case 'In Progress':
+            case 'In Review':
+                return 'lightblue';
+            case 'Open':
+                return 'lightgrey';
+            default:
+                return '';
+        }
+    }
+
+    function createPieChart(openCount, completedCount, inProgressCount) {
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Open Issues', 'Completed Issues', 'In Progress / In Review Issues'],
+                datasets: [{
+                    data: [openCount, completedCount, inProgressCount],
+                    backgroundColor: ['lightgrey', 'lightgreen', 'lightblue'],
+                    borderColor: ['grey', 'green', 'blue'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Issue Distribution'
+                    }
+                }
+            }
         });
-        const averageResolutionTime = data.reduce((sum, item) => sum + item.ResolutionTime, 0) / data.length / numDevelopers;
-
-        // Calculate the number of unresolved and resolved issues for each date
-        const startDate = new Date(Math.min(...data.map(item => item.Created)));
-        const currentDate = new Date();
-        const dates = [];
-        for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
-            dates.push(new Date(d));
-        }
-
-        const unresolvedCounts = dates.map(date => data.filter(item => item.Created <= date && item.Updated > date).length);
-        const resolvedCounts = dates.map(date => data.filter(item => item.Updated <= date && item.Status === closedStatus).length);
-
-        // Predict the completion date based on the average resolution time
-        const totalIssues = data.length;
-        const remainingIssues = totalIssues - resolvedCounts[resolvedCounts.length - 1];
-        const predictedCompletionTimeDays = remainingIssues * averageResolutionTime;
-        const predictedCompletionDate = new Date(currentDate.getTime() + predictedCompletionTimeDays * (1000 * 60 * 60 * 24));
-
-        // Extend the dates to include the predicted completion date
-        const extendedDates = [...dates, predictedCompletionDate];
-        const extendedResolvedCounts = [...resolvedCounts, totalIssues];
-
-        // Create the burndown chart
-        createBurndownChart(dates, unresolvedCounts);
-        // Create the burn-up chart
-        createBurnupChart(extendedDates, extendedResolvedCounts, predictedCompletionDate);
     }
 
     function parseCSV(text) {
@@ -199,7 +393,7 @@
             const entry = {};
             headers.forEach((header, index) => {
                 const key = header.trim();
-                if (['Created', 'Updated', 'Status', 'Assignee'].includes(key)) {
+                if (['Created', 'Updated', 'Status', 'Assignee', 'Issue key'].includes(key)) {
                     entry[key] = values[index].trim();
                 }
             });
@@ -207,10 +401,25 @@
         });
     }
 
+    function calculateMovingAverage(data, windowSize) {
+        let result = [];
+        for (let i = 0; i < data.length - windowSize + 1; i++) {
+            let window = data.slice(i, i + windowSize);
+            let average = window.reduce((sum, val) => sum + val) / windowSize;
+            result.push(average);
+        }
+        return result;
+    }
+
     function createBurndownChart(dates, unresolvedCounts) {
         const ctx = document.getElementById('burndownChart').getContext('2d');
         const formattedDates = dates.map(date => date.toISOString().split('T')[0]);
         const today = new Date().toISOString().split('T')[0];
+
+        // Calculate moving average
+        const windowSize = 7;
+        const movingAverage = calculateMovingAverage(unresolvedCounts, windowSize);
+
         new Chart(ctx, {
             type: 'line',
             data: {
@@ -222,6 +431,14 @@
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     fill: true,
                     tension: 0.1
+                }, {
+                    label: '7-Day Moving Average',
+                    data: movingAverage,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    fill: false,
+                    tension: 0.1,
+                    borderDash: [10, 5] // Add dashed line for the moving average
                 }]
             },
             options: {
@@ -252,6 +469,15 @@
                     title: {
                         display: true,
                         text: `Burndown Chart - ${today}`
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const date = context.label;
+                                const unresolved = context.raw;
+                                return `Date: ${date}\nUnresolved Issues: ${unresolved}`;
+                            }
+                        }
                     }
                 }
             }
@@ -262,6 +488,11 @@
         const ctx = document.getElementById('burnupChart').getContext('2d');
         const formattedDates = dates.map(date => date.toISOString().split('T')[0]);
         const today = new Date().toISOString().split('T')[0];
+
+        // Calculate moving average
+        const windowSize = 7;
+        const movingAverage = calculateMovingAverage(resolvedCounts, windowSize);
+
         new Chart(ctx, {
             type: 'line',
             data: {
@@ -273,6 +504,14 @@
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     fill: true,
                     tension: 0.1
+                }, {
+                    label: '7-Day Moving Average',
+                    data: movingAverage,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    fill: false,
+                    tension: 0.1,
+                    borderDash: [10, 5] // Add dashed line for the moving average
                 }]
             },
             options: {
@@ -304,6 +543,15 @@
                         display: true,
                         text: `Burn-up Chart - ${today}`
                     },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const date = context.label;
+                                const resolved = context.raw;
+                                return `Date: ${date}\nResolved Issues: ${resolved}`;
+                            }
+                        }
+                    },
                     annotation: {
                         annotations: [{
                             type: 'line',
@@ -323,6 +571,7 @@
             }
         });
     }
+
 
     // Function to download the chart as an image
     function downloadChart(chartId, chartName) {
