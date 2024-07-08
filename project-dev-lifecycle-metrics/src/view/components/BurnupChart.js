@@ -21,11 +21,26 @@ const calculateBurnupData = (rows, numDevs) => {
 
     if (rows[0].Created && rows[0].Updated) {
         rows.forEach(item => {
+            item.Created = new Date(item.Created);
+            item.Updated = new Date(item.Updated);
+        });
+    }
+
+    if (isNaN(numDevs) || numDevs < 1) {
+        if (rows[0].Assignee) {
+            const uniqueAssignees = new Set(rows.map(item => item.Assignee));
+            numDevs = uniqueAssignees.size - 1;
+        } else {
+            numDevs = 1;
+        }
+    }
+
+    if (rows[0].Created && rows[0].Updated) {
+        rows.forEach(item => {
             item.ResolutionTime = (item.Updated - item.Created) / (1000 * 60 * 60 * 24);
         });
-        console.log(numDevs)
         const averageResolutionTime = rows.reduce((sum, item) => sum + item.ResolutionTime, 0) / rows.length / numDevs;
-        console.log(averageResolutionTime)
+
         const startDate = new Date(Math.min(...rows.map(item => item.Created)));
         const currentDate = new Date();
         const dates = [];
@@ -39,7 +54,7 @@ const calculateBurnupData = (rows, numDevs) => {
         const totalIssues = rows.length;
         const remainingIssues = totalIssues - resolvedCounts[resolvedCounts.length - 1];
         const predictedCompletionTimeDays = remainingIssues * averageResolutionTime;
-        const predictedCompletionDate = new Date(currentDate.getTime() + predictedCompletionTimeDays * (1000 * 60 * 60 * 24)) || new Date(currentDate.getTime() * (1000 * 60 * 60 * 24));
+        const predictedCompletionDate = new Date(currentDate.getTime() + predictedCompletionTimeDays * (1000 * 60 * 60 * 24));
 
         const extendedDates = [...dates, predictedCompletionDate];
         const extendedResolvedCounts = [...resolvedCounts, totalIssues];
@@ -59,16 +74,18 @@ const BurnupChart = ({props}) => {
 
     useEffect(() => {
         if (csvData.length > 0 && numDevs > 0) {
-            const { dates, resolvedCounts, predictedCompletionDate } = calculateBurnupData(csvData, numDevs);
+            const { extendedDates, extendedResolvedCounts, predictedCompletionDate } = calculateBurnupData(csvData, numDevs);
 
-            const formattedDates = dates.map(date => date.toISOString().split('T')[0]);
+            const formattedDates = extendedDates.map(date => date.toISOString().split('T')[0]);
             const today = new Date().toISOString().split('T')[0];
+
+            console.log(formattedDates)
 
             const data = {
                 labels: formattedDates,
                 datasets: [{
                     label: 'Resolved Issues',
-                    data: resolvedCounts,
+                    data: extendedResolvedCounts,
                     borderColor: 'rgba(75, 192, 192, 1)',
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     fill: true,
@@ -82,9 +99,9 @@ const BurnupChart = ({props}) => {
                         type: 'time',
                         time: {
                             unit: 'day',
-                            tooltipFormat: 'MMM dd yy',
+                            tooltipFormat: 'MMM dd yyyy',
                             displayFormats: {
-                                day: 'MMM dd yy'
+                                day: 'MMM dd yyyy'
                             }
                         },
                         title: {
