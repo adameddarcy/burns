@@ -6,13 +6,13 @@ import BurnupChart from './components/BurnupChart';
 import BurndownChart from './components/BurndownChart';
 
 const DataView = () => {
-    const { headers, rows } = useSelector((state) => state.csvData);
-
+    const { headers, rows, data, numDevs } = useSelector((state) => state.csvData);
+ 
     return (
         <>
         <ResponsiveContainer>
-        {rows.length > 0 && <BurnupChart/>}
-        {rows.length > 0 && <BurndownChart/>}
+            {headers.length > 0 && <BurnupChart props={{csvData: data, numDevs: numDevs}} />}
+            {headers.length > 0 && <BurndownChart props={{csvData: data, numDevs: numDevs}} />}
         </ResponsiveContainer>
         <ResponsiveContainer>
             {headers.length > 0 && <CompoundTable 

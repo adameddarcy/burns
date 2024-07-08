@@ -11,36 +11,61 @@ const parseDate = (dateString) => {
     return new Date(dateString);
 };
 
-const calculateBurnupData = (rows) => {
+const calculateBurnupData = (rows, numDevs) => {
     rows.forEach(row => {
         row.Created = parseDate(row.Created);
         row.Updated = parseDate(row.Updated);
     });
 
-    const startDate = new Date(Math.min(...rows.map(row => row.Created)));
-    const endDate = new Date(Math.max(...rows.map(row => row.Updated)));
-    const dates = [];
+    const closedStatus = 'Closed';
 
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        dates.push(new Date(d));
+    if (rows[0].Created && rows[0].Updated) {
+        rows.forEach(item => {
+            item.ResolutionTime = (item.Updated - item.Created) / (1000 * 60 * 60 * 24);
+        });
+        console.log(numDevs)
+        const averageResolutionTime = rows.reduce((sum, item) => sum + item.ResolutionTime, 0) / rows.length / numDevs;
+        console.log(averageResolutionTime)
+        const startDate = new Date(Math.min(...rows.map(item => item.Created)));
+        const currentDate = new Date();
+        const dates = [];
+        for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
+            dates.push(new Date(d));
+        }
+
+        const unresolvedCounts = dates.map(date => rows.filter(item => item.Created <= date && item.Updated > date).length);
+        const resolvedCounts = dates.map(date => rows.filter(item => item.Updated <= date && item.Status === closedStatus).length);
+
+        const totalIssues = rows.length;
+        const remainingIssues = totalIssues - resolvedCounts[resolvedCounts.length - 1];
+        const predictedCompletionTimeDays = remainingIssues * averageResolutionTime;
+        const predictedCompletionDate = new Date(currentDate.getTime() + predictedCompletionTimeDays * (1000 * 60 * 60 * 24)) || new Date(currentDate.getTime() * (1000 * 60 * 60 * 24));
+
+        const extendedDates = [...dates, predictedCompletionDate];
+        const extendedResolvedCounts = [...resolvedCounts, totalIssues];
+
+        // createBurndownChart(dates, unresolvedCounts);
+        // createBurnupChart(extendedDates, extendedResolvedCounts, predictedCompletionDate);
+        return { dates, unresolvedCounts, resolvedCounts, predictedCompletionDate, extendedDates, extendedResolvedCounts };
+    } else {
+        console.error('Required date columns ("Created" and "Updated") are missing.');
     }
-
-    const totalIssues = rows.length;
-    const resolvedCounts = dates.map(date => rows.filter(row => row.Updated <= date && row.Status === 'Resolved').length);
-
-    return { dates, resolvedCounts, totalIssues };
 };
 
-const BurnupChart = () => {
-    const csvData = useSelector((state) => state.csvData.data);
+const BurnupChart = ({props}) => {
     const [chartData, setChartData] = useState(null);
 
+    const {csvData, numDevs} = props;
+
     useEffect(() => {
-        if (csvData.length > 0) {
-            const { dates, resolvedCounts, totalIssues } = calculateBurnupData(csvData);
+        if (csvData.length > 0 && numDevs > 0) {
+            const { dates, resolvedCounts, predictedCompletionDate } = calculateBurnupData(csvData, numDevs);
+
+            const formattedDates = dates.map(date => date.toISOString().split('T')[0]);
+            const today = new Date().toISOString().split('T')[0];
 
             const data = {
-                labels: dates.map(date => date.toISOString().split('T')[0]),
+                labels: formattedDates,
                 datasets: [{
                     label: 'Resolved Issues',
                     data: resolvedCounts,
@@ -49,7 +74,7 @@ const BurnupChart = () => {
                     fill: true,
                     tension: 0.1
                 }]
-            };
+            }
 
             const options = {
                 scales: {
@@ -78,23 +103,39 @@ const BurnupChart = () => {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Burnup Chart'
+                        text: `Burn-up Chart - ${today}`
                     },
                     tooltip: {
                         callbacks: {
-                            label: function (context) {
+                            label: function(context) {
                                 const date = context.label;
                                 const resolved = context.raw;
                                 return `Date: ${date}\nResolved Issues: ${resolved}`;
                             }
                         }
+                    },
+                    annotation: {
+                        annotations: [{
+                            type: 'line',
+                            mode: 'vertical',
+                            scaleID: 'x',
+                            value: predictedCompletionDate.toISOString().split('T')[0],
+                            borderColor: 'red',
+                            borderWidth: 2,
+                            label: {
+                                content: 'Predicted Completion Date',
+                                enabled: true,
+                                position: 'top'
+                            }
+                        }]
                     }
                 }
             };
 
+
             setChartData({ data, options });
         }
-    }, [csvData]);
+    }, [csvData, numDevs]);
 
     return chartData ? <Line data={chartData.data} options={chartData.options} /> : null;
 };
