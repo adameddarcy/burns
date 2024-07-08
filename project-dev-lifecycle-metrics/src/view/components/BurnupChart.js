@@ -1,71 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import 'chartjs-adapter-moment';
-import { useSelector } from 'react-redux';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale, Filler } from 'chart.js';
+import {calculateBurns} from "../../logic/calculateBurns";
+import {calculateMovingAverage} from "../../logic/calculateMovingAverage";
+import exportAsImage from "../../data/download";
+import './DownloadButton.css';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale);
-
-const parseDate = (dateString) => {
-    // Convert the date string to a Date object, handle various formats if necessary
-    return new Date(dateString);
-};
-
-const calculateBurnupData = (rows, numDevs) => {
-    rows.forEach(row => {
-        row.Created = parseDate(row.Created);
-        row.Updated = parseDate(row.Updated);
-    });
-
-    const closedStatus = 'Closed';
-
-    if (rows[0].Created && rows[0].Updated) {
-        rows.forEach(item => {
-            item.Created = new Date(item.Created);
-            item.Updated = new Date(item.Updated);
-        });
-    }
-
-    if (isNaN(numDevs) || numDevs < 1) {
-        if (rows[0].Assignee) {
-            const uniqueAssignees = new Set(rows.map(item => item.Assignee));
-            numDevs = uniqueAssignees.size - 1;
-        } else {
-            numDevs = 1;
-        }
-    }
-
-    if (rows[0].Created && rows[0].Updated) {
-        rows.forEach(item => {
-            item.ResolutionTime = (item.Updated - item.Created) / (1000 * 60 * 60 * 24);
-        });
-        const averageResolutionTime = rows.reduce((sum, item) => sum + item.ResolutionTime, 0) / rows.length / numDevs;
-
-        const startDate = new Date(Math.min(...rows.map(item => item.Created)));
-        const currentDate = new Date();
-        const dates = [];
-        for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
-            dates.push(new Date(d));
-        }
-
-        const unresolvedCounts = dates.map(date => rows.filter(item => item.Created <= date && item.Updated > date).length);
-        const resolvedCounts = dates.map(date => rows.filter(item => item.Updated <= date && item.Status === closedStatus).length);
-
-        const totalIssues = rows.length;
-        const remainingIssues = totalIssues - resolvedCounts[resolvedCounts.length - 1];
-        const predictedCompletionTimeDays = remainingIssues * averageResolutionTime;
-        const predictedCompletionDate = new Date(currentDate.getTime() + predictedCompletionTimeDays * (1000 * 60 * 60 * 24));
-
-        const extendedDates = [...dates, predictedCompletionDate];
-        const extendedResolvedCounts = [...resolvedCounts, totalIssues];
-
-        // createBurndownChart(dates, unresolvedCounts);
-        // createBurnupChart(extendedDates, extendedResolvedCounts, predictedCompletionDate);
-        return { dates, unresolvedCounts, resolvedCounts, predictedCompletionDate, extendedDates, extendedResolvedCounts };
-    } else {
-        console.error('Required date columns ("Created" and "Updated") are missing.');
-    }
-};
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale, Filler);
 
 const BurnupChart = ({props}) => {
     const [chartData, setChartData] = useState(null);
@@ -74,12 +16,14 @@ const BurnupChart = ({props}) => {
 
     useEffect(() => {
         if (csvData.length > 0 && numDevs > 0) {
-            const { extendedDates, extendedResolvedCounts, predictedCompletionDate } = calculateBurnupData(csvData, numDevs);
+            const { extendedDates, extendedResolvedCounts, predictedCompletionDate, resolvedCounts } = calculateBurns(csvData, numDevs);
+
+            // Calculate moving average
+            const windowSize = 7;
+            const movingAverage = calculateMovingAverage(resolvedCounts, windowSize);
 
             const formattedDates = extendedDates.map(date => date.toISOString().split('T')[0]);
             const today = new Date().toISOString().split('T')[0];
-
-            console.log(formattedDates)
 
             const data = {
                 labels: formattedDates,
@@ -90,6 +34,14 @@ const BurnupChart = ({props}) => {
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     fill: true,
                     tension: 0.1
+                }, {
+                    label: '7-Day Moving Average',
+                    data: movingAverage,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    fill: false,
+                    tension: 0.1,
+                    borderDash: [10, 5] // Add dashed line for the moving average
                 }]
             }
 
@@ -98,7 +50,7 @@ const BurnupChart = ({props}) => {
                     x: {
                         type: 'time',
                         time: {
-                            unit: 'day',
+                            unit: 'week',
                             tooltipFormat: 'MMM dd yyyy',
                             displayFormats: {
                                 day: 'MMM dd yyyy'
@@ -154,7 +106,14 @@ const BurnupChart = ({props}) => {
         }
     }, [csvData, numDevs]);
 
-    return chartData ? <Line data={chartData.data} options={chartData.options} /> : null;
+    return chartData ?
+        <>
+            <>
+                <button class={"download-button"} type="button" onClick={() => exportAsImage(document.getElementById('downloadBurndown'), `Burnup Chart - ${new Date().toISOString().split('T')[0]}`)}>Download Burnup</button>
+            </>
+        <Line id={"downloadBurndown"} data={chartData.data} options={chartData.options} />
+        </>
+        : null;
 };
 
 export default BurnupChart;

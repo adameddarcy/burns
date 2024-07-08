@@ -1,52 +1,45 @@
+const parseDate = (dateString) => {
+    // Convert the date string to a Date object, handle various formats if necessary
+    return new Date(dateString);
+};
+
 export const calculateBurns = (rows, numDevs) => {
-    const closedStatus = 'Closed';
-
-    const Created = 0
-    const Updated = 2
-    
-
-    let ResolutionTimes = []
-
-    rows.forEach(item => {
-        let updated = new Date(item[Updated])
-        let created = new Date(item[Created])
-        let res = (updated - created) / (1000 * 60 * 60 * 24)
-        if (res > 0) ResolutionTimes.push(res) ;
+    rows.forEach(row => {
+        row.Created = parseDate(row.Created);
+        row.Updated = parseDate(row.Updated);
     });
 
+    const closedStatus = 'Closed';
 
-    const averageResolutionTime = ResolutionTimes.reduce((sum, item) => sum + item, 0) / ResolutionTimes.length / numDevs;
+    if (rows[0].Created && rows[0].Updated) {
+        rows.forEach(item => {
+            item.ResolutionTime = (item.Updated - item.Created) / (1000 * 60 * 60 * 24);
+        });
 
-    const startDate = rows.reduce((earliestDate, item) => {
-        const createdDate = new Date(item[Created]);
-        console.log(item)
-        return earliestDate ? (createdDate < earliestDate ? createdDate : earliestDate) : createdDate;
-    }, null);
+        const averageResolutionTime = rows.reduce((sum, item) => sum + item.ResolutionTime, 0) / rows.length / numDevs;
 
-    const currentDate = new Date();
-
-    const getDatesInRange = (start, end) => {
+        const startDate = new Date(Math.min(...rows.map(item => item.Created)));
+        const currentDate = new Date();
         const dates = [];
-        const currentDate = new Date(start);
-        while (currentDate <= end) {
-            dates.push(new Date(currentDate));
-            currentDate.setDate(currentDate.getDate() + 1);
+        for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
+            dates.push(new Date(d));
         }
 
-        return dates;
-    };
+        const unresolvedCounts = dates.map(date => rows.filter(item => item.Created <= date && item.Updated > date).length);
+        const resolvedCounts = dates.map(date => rows.filter(item => item.Updated <= date && item.Status === closedStatus).length);
 
-    const dates = getDatesInRange(startDate, currentDate);
-    const unresolvedCounts = dates.map(date => rows.filter(item => item[Created] <= date && item[Updated] > date).length);
-    const resolvedCounts = dates.map(date => rows.filter(item => item[Updated] <= date && item.Status === closedStatus).length);
+        const totalIssues = rows.length;
+        const remainingIssues = totalIssues - resolvedCounts[resolvedCounts.length - 1];
+        const predictedCompletionTimeDays = remainingIssues * averageResolutionTime;
+        const predictedCompletionDate = new Date(currentDate.getTime() + predictedCompletionTimeDays * (1000 * 60 * 60 * 24)) || new Date(currentDate.getTime() * (1000 * 60 * 60 * 24));
 
-    const totalIssues = rows.length;
-    const remainingIssues = totalIssues - resolvedCounts[resolvedCounts.length - 1];
-    const predictedCompletionTimeDays = remainingIssues * averageResolutionTime;
-    const predictedCompletionDate = new Date(currentDate.getTime() + predictedCompletionTimeDays * (1000 * 60 * 60 * 24));
+        const extendedDates = [...dates, predictedCompletionDate];
+        const extendedResolvedCounts = [...resolvedCounts, totalIssues];
 
-    const extendedDates = [...dates, predictedCompletionDate];
-    const extendedResolvedCounts = [...resolvedCounts, totalIssues];
-
-    return { dates, unresolvedCounts, resolvedCounts, predictedCompletionDate, extendedDates, extendedResolvedCounts };
-}
+        // createBurndownChart(dates, unresolvedCounts);
+        // createBurnupChart(extendedDates, extendedResolvedCounts, predictedCompletionDate);
+        return { dates, unresolvedCounts, resolvedCounts, predictedCompletionDate, extendedDates, extendedResolvedCounts };
+    } else {
+        console.error('Required date columns ("Created" and "Updated") are missing.');
+    }
+};

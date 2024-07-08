@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setNumDevs } from '../data/actions';
+import './Cta.css';
 
 const InputCountOfDevs = () => {
     const [numDevs, setNumDevsLocal] = useState(1);
@@ -12,12 +13,10 @@ const InputCountOfDevs = () => {
     };
 
     return (
-        <div>
-            <label>
-                Number of Developers:
-                <input type="number" value={numDevs} onChange={handleNumDevsChange} min="1" />
-            </label>
-        </div>
+            <div className="cta-item">
+                <label htmlFor="number-input">Override Number of Devs?</label>
+                <input id="number-input" type="number" value={numDevs} onChange={handleNumDevsChange} min="1"/>
+            </div>
     );
 };
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { setCsvData, setReducedCsvData, setCsvDataRaw } from '../../data/actions';
 import Papa from 'papaparse';
+import './../Cta.css';
 
 const CsvUploader = () => {
     const dispatch = useDispatch();
@@ -44,10 +45,11 @@ const CsvUploader = () => {
     };
 
     return (
-        <div>
-            <input type="file" accept=".csv" onChange={handleFileUpload} />
-        </div>
-    );
+            <div className="cta-item">
+                <label htmlFor="file-upload">Upload File</label>
+                <input type="file" id="file-upload" accept=".csv" onChange={handleFileUpload}/>
+            </div>
+    )
 }
 
 export default CsvUploader;

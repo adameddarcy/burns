@@ -1,12 +1,9 @@
 export const calculateMovingAverage = (data, windowSize) => {
-    let movingAverage = [];
-    for (let i = 0; i < data.length; i++) {
-        let start = Math.max(0, i - windowSize + 1);
-        let sum = 0;
-        for (let j = start; j <= i; j++) {
-            sum += data[j];
-        }
-        movingAverage.push(sum / (i - start + 1));
+    let result = [];
+    for (let i = 0; i < data.length - windowSize + 1; i++) {
+        let window = data.slice(i, i + windowSize);
+        let average = window.reduce((sum, val) => sum + val) / windowSize;
+        result.push(average);
     }
-    return movingAverage;
-};
+    return result;
+}
