@@ -5,6 +5,7 @@ import CompoundTable from './components/CompoundTable';
 import BurnupChart from './components/BurnupChart';
 import BurndownChart from './components/BurndownChart';
 import './Cta.css';
+import EmptyState from "./components/EmptyState";
 
 
 const DataView = ({props}) => {
@@ -22,28 +23,31 @@ const DataView = ({props}) => {
  
     return (
         <>
+            {headers.length > 0 ? <>
             <ResponsiveContainer>
-            <div>{headers.length > 0 && <BurnupChart props={{csvData: data, numDevs: devCount}}/>}</div>
+                <div><BurnupChart props={{csvData: data, numDevs: devCount}}/></div>
 
-                <div>{headers.length > 0 && <BurndownChart props={{csvData: data, numDevs: devCount}}/>}</div>
+                <div> <BurndownChart props={{csvData: data, numDevs: devCount}}/></div>
             </ResponsiveContainer>
             <ResponsiveContainer>
-                {headers.length > 0 && <CompoundTable
+                <CompoundTable
                     filterStatuses={['Open']}
                     displayHeaders={["Created", "Status", "Updated", "Assignee", "Issue key"]}
                     allHeaders={headers}
-                    rows={rows}/>}
-                {headers.length > 0 && <CompoundTable
+                    rows={rows}/>
+                <CompoundTable
                     filterStatuses={['In Progress', "In Review"]}
                     displayHeaders={["Created", "Status", "Updated", "Assignee", "Issue key"]}
                     allHeaders={headers}
-                    rows={rows}/>}
-                {headers.length > 0 && <CompoundTable
+                    rows={rows}/>
+                <CompoundTable
                     filterStatuses={['Resolved', "Closed"]}
                     displayHeaders={["Created", "Status", "Updated", "Assignee", "Issue key"]}
                     allHeaders={headers}
-                    rows={rows}/>}
+                    rows={rows}/>
             </ResponsiveContainer>
+                </> : <EmptyState/>
+}
         </>
     );
 };

@@ -1,0 +1,23 @@
+.download-button {
+    display: inline-block;
+    padding: 12px 24px;
+    font-size: 16px;
+    color: #fff;
+    background: linear-gradient(90deg, #4CAF50, #81C784);
+    border: none;
+    border-radius: 25px;
+    text-decoration: none;
+    text-align: center;
+    transition: background 0.3s, transform 0.3s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.download-button:hover {
+    background: linear-gradient(90deg, #81C784, #4CAF50);
+    transform: scale(1.05);
+}
+
+.download-button:active {
+    background: linear-gradient(90deg, #388E3C, #66BB6A);
+    transform: scale(0.95);
+}

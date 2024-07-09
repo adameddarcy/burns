@@ -11,6 +11,7 @@ import DataView from './view/DataView.js';
 import InputCountOfDevs from './view/InputCountOfDevs.js';
 import DevCount from "./view/DevCount";
 import ResponsiveContainer from "./view/components/ResponsiveContainer";
+import Checkbox from "./view/components/Checkbox";
 
 function App() {
 
@@ -23,8 +24,7 @@ function App() {
                       <h2>Instructions</h2>
                       <ol>
                           <li>In Jira, create a filter against your Epic.</li>
-                          <li>Reduce Columns to be "Created", "Status", "Updated", "Assignee" and "Key".</li>
-                          <li>Export CSV (Current Fields).</li>
+                          <li>Export CSV.</li>
                           <li>Upload your CSV to generate your charts.</li>
                           <li>The number of developers active on the project will be calculated automatically from the
                               Assignee column. But you can override this with a manual average number of developers.
@@ -39,9 +39,7 @@ function App() {
                   <CsvUploader/>
                   <div className={"highlight-override"}>
                       <InputCountOfDevs/>
-                      <input type="checkbox" id="override-checkbox" checked={override}
-                             onChange={e => setOverride(e.target.checked)}/>
-                      <label htmlFor="override-checkbox" style={{color: '#282c34'}}>Use Override</label>
+                      <Checkbox props={{override: override, setOverride: setOverride}} />
                   </div>
                   <DevCount props={{override: override}}/>
               </div>

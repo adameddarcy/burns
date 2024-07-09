@@ -1,10 +1,14 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import { setCsvData, setReducedCsvData, setCsvDataRaw } from '../../data/actions';
+import {useSelector} from "react-redux";
 import Papa from 'papaparse';
 import './../Cta.css';
 
 const CsvUploader = () => {
+
+    const { headers } = useSelector((state) => state.csvData);
+
     const dispatch = useDispatch();
 
     const handleFileUpload = (event) => {
@@ -44,10 +48,12 @@ const CsvUploader = () => {
         reader.readAsText(file);
     };
 
+    const disabled = headers.length > 1 ? 'cta-item-hidden' : 'cta-item';
+
     return (
-            <div className="cta-item">
+            <div className={disabled}>
                 <label htmlFor="file-upload">Upload File</label>
-                <input type="file" id="file-upload" accept=".csv" onChange={handleFileUpload}/>
+                <input type="file" id="file-upload" className={"display-field"} accept=".csv" onChange={handleFileUpload}/>
             </div>
     )
 }
