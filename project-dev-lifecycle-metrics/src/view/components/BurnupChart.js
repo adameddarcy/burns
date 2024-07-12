@@ -2,32 +2,37 @@ import React, { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import 'chartjs-adapter-moment';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale, Filler } from 'chart.js';
-import {calculateBurns} from "../../logic/calculateBurns";
-import {calculateMovingAverage} from "../../logic/calculateMovingAverage";
-import exportAsImage from "../../data/download";
+import { calculateMovingAverage } from '../../logic/calculateMovingAverage';
+import exportAsImage from '../../data/download';
 import './DownloadButton.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale, Filler);
 
-const BurnupChart = ({props}) => {
+const BurnupChart = ({ extendedDates, extendedResolvedCounts, predictedCompletionDate, resolvedCounts }) => {
     const [chartData, setChartData] = useState(null);
 
-    const {csvData, numDevs} = props;
-
     useEffect(() => {
-        if (csvData.length > 0 && numDevs > 0) {
-            const { extendedDates, extendedResolvedCounts, predictedCompletionDate, resolvedCounts } = calculateBurns(csvData, numDevs);
-
+        if (extendedDates) {
             // Calculate moving average
             const windowSize = 7;
             const movingAverage = calculateMovingAverage(resolvedCounts, windowSize);
-
             const formattedDates = extendedDates.map(date => date.toISOString().split('T')[0]);
             const today = new Date().toISOString().split('T')[0];
 
             const data = {
                 labels: formattedDates,
                 datasets: [{
+                    label: 'Predicted Completion Date',
+                    data: Array(formattedDates.length).fill(null).map((_, index) => index === formattedDates.indexOf(predictedCompletionDate.toISOString().split('T')[0]) ? extendedResolvedCounts[formattedDates.indexOf(predictedCompletionDate.toISOString().split('T')[0])] : null),
+                    borderColor: 'rgba(255, 165, 0, 1)',
+                    backgroundColor: 'rgba(255, 165, 0, 0.2)',
+                    fill: false,
+                    pointRadius: 5,
+                    pointBackgroundColor: 'rgba(255, 165, 0, 1)',
+                    pointBorderColor: 'rgba(255, 165, 0, 1)',
+                    showLine: false
+                },
+                    {
                     label: 'Resolved Issues',
                     data: extendedResolvedCounts,
                     borderColor: 'rgba(75, 192, 192, 1)',
@@ -101,17 +106,14 @@ const BurnupChart = ({props}) => {
                 }
             };
 
-
             setChartData({ data, options });
         }
-    }, [csvData, numDevs]);
+    }, [extendedDates, extendedResolvedCounts, predictedCompletionDate, resolvedCounts]);
 
     return chartData ?
         <>
-            <>
-                <button class={"download-button"} type="button" onClick={() => exportAsImage(document.getElementById('downloadBurndown'), `Burnup Chart - ${new Date().toISOString().split('T')[0]}`)}>Download Burnup</button>
-            </>
-        <Line id={"downloadBurndown"} data={chartData.data} options={chartData.options} />
+            <button className="download-button" type="button" onClick={() => exportAsImage(document.getElementById('downloadBurndown'), `Burnup Chart - ${new Date().toISOString().split('T')[0]}`)}>Download Burnup</button>
+            <Line id="downloadBurndown" data={chartData.data} options={chartData.options} />
         </>
         : null;
 };

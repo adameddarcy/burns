@@ -3,20 +3,21 @@ const parseDate = (dateString) => {
     return new Date(dateString);
 };
 
-export const calculateBurns = (rows, numDevs) => {
-    rows.forEach(row => {
+export const calculateBurns = (rows, numDevs, velocity) => {
+    rows.forEach((row) => {
         row.Created = parseDate(row.Created);
         row.Updated = parseDate(row.Updated);
     });
 
     const closedStatus = 'Closed';
 
-    if (rows[0].Created && rows[0].Updated) {
         rows.forEach(item => {
             item.ResolutionTime = (item.Updated - item.Created) / (1000 * 60 * 60 * 24);
         });
 
         const averageResolutionTime = rows.reduce((sum, item) => sum + item.ResolutionTime, 0) / rows.length / numDevs;
+
+        const v = velocity > 0 ? velocity : averageResolutionTime;
 
         const startDate = new Date(Math.min(...rows.map(item => item.Created)));
         const currentDate = new Date();
@@ -30,16 +31,10 @@ export const calculateBurns = (rows, numDevs) => {
 
         const totalIssues = rows.length;
         const remainingIssues = totalIssues - resolvedCounts[resolvedCounts.length - 1];
-        const predictedCompletionTimeDays = remainingIssues * averageResolutionTime;
+        const predictedCompletionTimeDays = remainingIssues * v;
         const predictedCompletionDate = new Date(currentDate.getTime() + predictedCompletionTimeDays * (1000 * 60 * 60 * 24)) || new Date(currentDate.getTime() * (1000 * 60 * 60 * 24));
 
         const extendedDates = [...dates, predictedCompletionDate];
         const extendedResolvedCounts = [...resolvedCounts, totalIssues];
-
-        // createBurndownChart(dates, unresolvedCounts);
-        // createBurnupChart(extendedDates, extendedResolvedCounts, predictedCompletionDate);
-        return { dates, unresolvedCounts, resolvedCounts, predictedCompletionDate, extendedDates, extendedResolvedCounts };
-    } else {
-        console.error('Required date columns ("Created" and "Updated") are missing.');
-    }
+        return { dates, unresolvedCounts, resolvedCounts, predictedCompletionDate, extendedDates, extendedResolvedCounts, averageResolutionTime, v };
 };

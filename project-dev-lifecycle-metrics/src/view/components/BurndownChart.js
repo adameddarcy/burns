@@ -9,15 +9,12 @@ import './DownloadButton.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale, Filler);
 
-const BurndownChart = ({props}) => {
-
-    const {csvData, numDevs} = props;
+const BurndownChart = ({ dates, unresolvedCounts }) => {
 
     const [chartData, setChartData] = useState(null);
 
     useEffect(() => {
-        if (csvData.length > 0 && numDevs > 0) {
-            const { dates, unresolvedCounts } = calculateBurns(csvData, numDevs);
+        if (dates) {
 
             // Calculate moving average
             const windowSize = 7;
@@ -89,12 +86,12 @@ const BurndownChart = ({props}) => {
 
             setChartData({ data, options });
         }
-    }, [csvData, numDevs]);
+    }, [dates, unresolvedCounts]);
 
     return chartData ?
         <>
             <>
-                <button class={"download-button"} type="button" onClick={() => exportAsImage(document.getElementById('downloadBurndown'), `Burndown Chart - ${new Date().toISOString().split('T')[0]}`)}>Download Burndown</button>
+                <button className={"download-button"} type="button" onClick={() => exportAsImage(document.getElementById('downloadBurndown'), `Burndown Chart - ${new Date().toISOString().split('T')[0]}`)}>Download Burndown</button>
             </>
             <Line id={"downloadBurndown"} data={chartData.data} options={chartData.options} />
         </>

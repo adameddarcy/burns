@@ -18,7 +18,7 @@ const InputCountOfDevs = () => {
     const disabled = headers.length > 1 ? 'cta-item-hidden' : 'cta-item';
 
     return (
-            <div className={disabled}>
+            <div>
                 <label htmlFor="number-input">Override Number of Devs?</label>
                 <input id="number-input" type="number" value={numDevs} onChange={handleNumDevsChange} min="1"/>
             </div>

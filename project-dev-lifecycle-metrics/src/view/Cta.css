@@ -6,6 +6,7 @@
     border-radius: 4px; /* Rounded corners */
     box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); /* Red glow */
     animation: pulse 1s infinite; /* Pulse animation */
+    color: #282c34;
 }
 
 /* Pulse animation */
@@ -21,95 +22,52 @@
     }
 }
 
-.upload-cta {
-    float: right;
-    margin-bottom: 5px;
-}
+/* Cta.css */
 
-.cta-container {
-    background-color: #f7f7f7;
-    border: 1px solid #ddd;
-    border-radius: 10px;
+.csv-uploader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     padding: 20px;
-    max-width: 400px;
-    margin: 0 auto;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    width: 300px;
+    margin: 20px auto;
 }
 
-.cta-container h2 {
-    text-align: center;
-    color: #333;
-}
-
-.cta-item-hidden {
-    visibility: hidden;
-    display: none;
-}
-
-.cta-item {
-    margin-bottom: 15px;
-}
-
-.cta-item label {
-    display: block;
-    margin-bottom: 5px;
+.csv-uploader-container .upload-label {
+    font-size: 18px;
+    font-weight: bold;
     color: #555;
-}
-
-.cta-item input[type="file"] {
-    display: block;
-    width: calc(100% - 20px);
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #fff;
-}
-
-.cta-item input[type="number"] {
-    display: block;
-    width: calc(100% - 20px);
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #fff;
-    margin-right: 10px;
-}
-
-.cta-item input[type="checkbox"] {
-    transform: scale(1.2);
-    margin-right: 10px;
-}
-
-.cta-item .display-field {
-    padding: 10px;
-    background-color: #e0f7fa;
-    border: 1px solid #00acc1;
-    border-radius: 5px;
-    text-align: center;
-    color: #007c91;
-}
-
-.cta-item button {
-    display: inline-block;
-    padding: 12px 24px;
-    font-size: 16px;
-    color: #fff;
-    background: linear-gradient(90deg, #4CAF50, #81C784);
-    border: none;
-    border-radius: 25px;
-    text-decoration: none;
-    text-align: center;
-    transition: background 0.3s, transform 0.3s;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
     cursor: pointer;
 }
 
-.cta-item button:hover {
-    background: linear-gradient(90deg, #81C784, #4CAF50);
-    transform: scale(1.05);
+.csv-uploader-container input[type="file"] {
+    display: none;
 }
 
-.cta-item button:active {
-    background: linear-gradient(90deg, #388E3C, #66BB6A);
-    transform: scale(0.95);
+.csv-uploader-container .display-field {
+    display: block;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.csv-uploader-container .display-field:hover {
+    background-color: #0056b3;
+}
+
+.csv-uploader-container .file-name {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #333;
+    font-style: italic;
 }
