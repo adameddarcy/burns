@@ -6,9 +6,19 @@ import { calculateMovingAverage } from '../../logic/calculateMovingAverage';
 import exportAsImage from '../../data/download';
 import './DownloadButton.css';
 
+import ReactGA from "react-ga";
+
+const useAnalyticsEventTracker = (category="Upload Category") => {
+    const eventTracker = (action = "upload action", label = "upload label") => {
+        ReactGA.event({category, action, label});
+    }
+    return eventTracker;
+}
+
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale, Filler);
 
 const BurnupChart = ({ extendedDates, extendedResolvedCounts, predictedCompletionDate, resolvedCounts }) => {
+    const gaEventTracker = useAnalyticsEventTracker('Download Burnup');
     const [chartData, setChartData] = useState(null);
 
     useEffect(() => {
@@ -112,7 +122,7 @@ const BurnupChart = ({ extendedDates, extendedResolvedCounts, predictedCompletio
 
     return chartData ?
         <>
-            <button className="download-button" type="button" onClick={() => exportAsImage(document.getElementById('downloadBurndown'), `Burnup Chart - ${new Date().toISOString().split('T')[0]}`)}>Download Burnup</button>
+            <button className="download-button" type="button" onClick={() => {exportAsImage(document.getElementById('downloadBurndown'), `Burnup Chart - ${new Date().toISOString().split('T')[0]}`); gaEventTracker('Download Burnup')}}>Download Burnup</button>
             <Line id="downloadBurndown" data={chartData.data} options={chartData.options} />
         </>
         : null;

@@ -23,6 +23,11 @@ import ControlChart from "./view/components/ControlChart";
 
 import CatLogo from "./assets/catburns.png"
 
+
+import ReactGA from 'react-ga';
+const TRACKING_ID = "448822146"; // OUR_TRACKING_ID
+ReactGA.initialize(TRACKING_ID);
+
 function App() {
 
     const [ready, setReady] = React.useState(false);

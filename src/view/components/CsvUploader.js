@@ -1,8 +1,17 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import './../Cta.css';
+import ReactGA from "react-ga";
+
+const useAnalyticsEventTracker = (category="Upload Category") => {
+    const eventTracker = (action = "upload action", label = "upload label") => {
+        ReactGA.event({category, action, label});
+    }
+    return eventTracker;
+}
 
 const CsvUploader = ({ csv, setCSV, setReady }) => {
+    const gaEventTracker = useAnalyticsEventTracker('Upload');
     const [fileName, setFileName] = useState('');
 
     const handleFileUpload = (event) => {
@@ -12,6 +21,8 @@ const CsvUploader = ({ csv, setCSV, setReady }) => {
 
         reader.onload = (e) => {
             const text = e.target.result;
+
+            gaEventTracker('Upload');
 
             // Use PapaParse to parse CSV data
             Papa.parse(text, {
