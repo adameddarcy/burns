@@ -26,14 +26,23 @@ const BurnupChart = ({ extendedDates, extendedResolvedCounts, predictedCompletio
             // Calculate moving average
             const windowSize = 7;
             const movingAverage = calculateMovingAverage(resolvedCounts, windowSize);
-            const formattedDates = extendedDates.map(date => date.toISOString().split('T')[0]);
+            let extendedDatesSafe = []
+            extendedDates.forEach(i => !isNaN(i) ? extendedDatesSafe.push(i) : null)
+
+            let extendedResolvedCountsSafe = []
+            extendedResolvedCounts.forEach(i => !isNaN(i) ? extendedResolvedCountsSafe.push(i) : null)
+
+            const formattedDates = extendedDatesSafe.map(date => date.toISOString().split('T')[0]);
             const today = new Date().toISOString().split('T')[0];
 
-            const data = {
-                labels: formattedDates,
-                datasets: [{
+            const predictedAnnotation = !isNaN(predictedCompletionDate) ? predictedCompletionDate.toISOString().split('T')[0] : null;
+
+            let prediction;
+            if (!isNaN(predictedCompletionDate)) {
+                console.log('test')
+                prediction = {
                     label: 'Predicted Completion Date',
-                    data: Array(formattedDates.length).fill(null).map((_, index) => index === formattedDates.indexOf(predictedCompletionDate.toISOString().split('T')[0]) ? extendedResolvedCounts[formattedDates.indexOf(predictedCompletionDate.toISOString().split('T')[0])] : null),
+                    data: Array(formattedDates.length).fill(null).map((_, index) => index === formattedDates.indexOf(predictedCompletionDate.toISOString().split('T')[0]) ? extendedResolvedCountsSafe[formattedDates.indexOf(predictedCompletionDate.toISOString().split('T')[0])] : null),
                     borderColor: 'rgba(255, 165, 0, 1)',
                     backgroundColor: 'rgba(255, 165, 0, 0.2)',
                     fill: false,
@@ -41,7 +50,12 @@ const BurnupChart = ({ extendedDates, extendedResolvedCounts, predictedCompletio
                     pointBackgroundColor: 'rgba(255, 165, 0, 1)',
                     pointBorderColor: 'rgba(255, 165, 0, 1)',
                     showLine: false
-                },
+                }
+            }
+
+            const data = {
+                labels: formattedDates,
+                datasets: [prediction,
                     {
                     label: 'Resolved Issues',
                     data: extendedResolvedCounts,
@@ -103,7 +117,7 @@ const BurnupChart = ({ extendedDates, extendedResolvedCounts, predictedCompletio
                             type: 'line',
                             mode: 'vertical',
                             scaleID: 'x',
-                            value: predictedCompletionDate.toISOString().split('T')[0],
+                            value: predictedAnnotation,
                             borderColor: 'red',
                             borderWidth: 2,
                             label: {

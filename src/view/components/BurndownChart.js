@@ -29,7 +29,10 @@ const BurndownChart = ({ dates, unresolvedCounts }) => {
             const windowSize = 7;
             const movingAverage = calculateMovingAverage(unresolvedCounts, windowSize);
 
-            const formattedDates = dates.map(date => date.toISOString().split('T')[0]);
+            let datesSafe = []
+            dates.forEach(i => !isNaN(i) ? datesSafe.push(i) : null)
+
+            const formattedDates = datesSafe.map(date => date.toISOString().split('T')[0]);
             const today = new Date().toISOString().split('T')[0];
 
             const data = {
