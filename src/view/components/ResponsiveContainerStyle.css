@@ -1,0 +1,24 @@
+.responsive-container-charts {
+    display: flex;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .responsive-container-charts > * {
+    flex: 1 1 100%;
+    box-sizing: border-box;
+    padding: 10px;
+  }
+  
+  /* Breakpoint for responsive design */
+  @media (min-width: 600px) {
+    .responsive-container-charts > * {
+      flex: 1 1 50%;
+    }
+  }
+  
+  @media (min-width: 900px) {
+    .responsive-container-charts > * {
+      flex: 1 1 33.33%;
+    }
+  }

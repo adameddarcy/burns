@@ -1,0 +1,73 @@
+/* Highlight style for override action */
+.highlight-override {
+    background-color: #ffeb3b; /* Bright yellow background */
+    border: 2px solid #f44336; /* Red border */
+    padding: 5px; /* Padding around the input field */
+    border-radius: 4px; /* Rounded corners */
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); /* Red glow */
+    animation: pulse 1s infinite; /* Pulse animation */
+    color: #282c34;
+}
+
+/* Pulse animation */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 2px rgba(255, 0, 0, 0.25);
+    }
+    50% {
+        box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+    }
+    100% {
+        box-shadow: 0 0 2px rgba(255, 0, 0, 0.25);
+    }
+}
+
+/* Cta.css */
+
+.csv-uploader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    width: 300px;
+    margin: 20px auto;
+}
+
+.csv-uploader-container .upload-label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.csv-uploader-container input[type="file"] {
+    display: none;
+}
+
+.csv-uploader-container .display-field {
+    display: block;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.csv-uploader-container .display-field:hover {
+    background-color: #0056b3;
+}
+
+.csv-uploader-container .file-name {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #333;
+    font-style: italic;
+}
