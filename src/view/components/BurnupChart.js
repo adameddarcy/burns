@@ -136,8 +136,8 @@ const BurnupChart = ({ extendedDates, extendedResolvedCounts, predictedCompletio
 
     return chartData ?
         <>
-            <button className="download-button" type="button" onClick={() => {exportAsImage(document.getElementById('downloadBurndown'), `Burnup Chart - ${new Date().toISOString().split('T')[0]}`); gaEventTracker('Download Burnup')}}>Download Burnup</button>
-            <Line id="downloadBurndown" data={chartData.data} options={chartData.options} />
+            <button className="download-button" type="button" onClick={() => {exportAsImage(document.getElementById('downloadBurnup'), `Burnup Chart - ${new Date().toISOString().split('T')[0]}`); gaEventTracker('Download Burnup')}}>Download Burnup</button>
+            <Line id="downloadBurnup" data={chartData.data} options={chartData.options} />
         </>
         : null;
 };
